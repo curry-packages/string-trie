@@ -1,0 +1,107 @@
+module Benchmark where
+
+import           Data.Trie 
+import qualified Data.Map as M
+import           Data.Maybe          ( fromJust )
+import           Data.List           ( sum, maximum )
+import           Debug.Profile       ( getTimings )
+import           Control.Applicative ( when ) 
+
+type Keys = [String]
+
+alphabet :: [Char]
+alphabet = ['a'..'j']
+
+sizeAlphabet :: Int
+sizeAlphabet = 10
+
+toKey :: Int -> String
+toKey n | n < 0            = error "toKey: negative number"
+        | n < sizeAlphabet = [alphabet !! n]
+        | otherwise        = toKey (n `div` sizeAlphabet) ++
+                             toKey (n `mod` sizeAlphabet)
+
+--- Small keys with length 1..3 and an alphabet of size 10.
+smallKeys :: Keys
+smallKeys = map toKey [1..3000]
+
+--- Large keys of length 3..36 (rich alphabet).
+largeKeys :: Keys
+largeKeys = [ foldr1 (++) [a,b,c] | a <- as, b <- as, c <- as]
+ where 
+  as = ["These", "are", "some", "generic", "words", "to", "create", "large", "keys",
+        "for", "benchmarking", "purposes", "in", "Curry", "programming", "language",
+        "which", "is", "a", "functional", "logic", "language"]
+
+lL :: [(String, Int)] -> String -> Int
+lL   = (fromJust .) . flip Prelude.lookup 
+
+sumAllL :: Keys -> [(String, Int)] -> Int
+sumAllL keys = sum . flip map keys . lL 
+
+lT :: Trie Int -> String -> Int
+lT   = (fromJust .) . flip Data.Trie.lookup
+
+sumAllT :: Keys -> Trie Int -> Int
+sumAllT keys = sum . flip map keys . lT
+
+lM :: M.Map String Int -> String -> Int
+lM = (fromJust .) . flip M.lookup 
+
+sumAllM :: Keys ->  M.Map String Int -> Int
+sumAllM keys = sum . flip map keys . lM
+
+-------------------------------------------------------------------------------
+--- Profiling
+
+--- Benchmarks construction time and random access time 
+--- of lists, tries and maps.
+runProfileTask :: Bool -> Keys -> IO ()
+runProfileTask ll keys = do 
+  let lAsList = zip keys [0..]
+      lAsTrie = fromList lAsList
+      lAsMap  = M.fromList lAsList
+
+  enforceNormalForm lAsList
+  profile "Trie construction" (enforceNormalForm lAsTrie)
+  profile "Map  construction" (enforceNormalForm lAsMap)
+
+  when ll $ 
+    profile "List lookup      " (enforceNormalForm (sumAllL keys lAsList))
+  profile   "Trie lookup      " (enforceNormalForm (sumAllT keys lAsTrie))
+  profile   "Map  lookup      " (enforceNormalForm (sumAllM keys lAsMap))
+
+-- Runs the profiling tasks
+main :: Prelude.IO ()
+main = do 
+  putStrLn "Benchmarking with small keys..."
+  runProfileTask True smallKeys
+
+  putStrLn "\nBenchmarking with large keys..."
+  runProfileTask False largeKeys 
+
+{- Results:
+>   Benchmarking with small keys...
+>   Trie construction took 158ms
+>   Map  construction took 1235ms
+>   List lookup       took 12858ms
+>   Trie lookup       took 87ms
+>   Map  lookup       took 593ms
+> 
+>   Benchmarking with large keys...
+>   Trie construction took 1426ms
+>   Map  construction took 6816ms
+>   Trie lookup       took 712ms
+>   Map  lookup       took 4925ms
+-}
+
+-------------------------------------------------------------------------------
+--- Auxiliary functions
+
+enforceNormalForm :: a -> IO ()
+enforceNormalForm x = normalForm x `seq` return ()
+
+profile :: String -> IO () -> IO ()
+profile nm act = do 
+  (_, rt, _, _) <- getTimings act
+  putStrLn (nm ++ " took " ++ show rt ++ "ms")  
