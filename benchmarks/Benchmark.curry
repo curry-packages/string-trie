@@ -7,6 +7,71 @@ import           Data.List           ( sum, maximum )
 import           Debug.Profile       ( getTimings )
 import           Control.Applicative ( when ) 
 
+-------------------------------------------------------------------------------
+--- Profiling
+
+--- Benchmarks construction time and random access time 
+--- of lists, tries and maps.
+profileLookup :: Bool -> Keys -> IO ()
+profileLookup ll keys = do 
+  let lAsList = zip keys [0..]
+      lAsTrie = fromList   lAsList
+      lAsMap  = M.fromList lAsList
+
+  enforceNormalForm lAsList
+  profile "Trie construction" (enforceNormalForm lAsTrie)
+  profile "Map  construction" (enforceNormalForm lAsMap)
+
+  when ll $ 
+    profile "List lookup      " (enforceNormalForm (sumAllL keys lAsList))
+  profile   "Trie lookup      " (enforceNormalForm (sumAllT keys lAsTrie))
+  profile   "Map  lookup      " (enforceNormalForm (sumAllM keys lAsMap))
+
+--- Benchmarks random-access deletion time of all elements for tries and maps 
+--- (naive deletion of the complete container).
+profileDeletion :: Keys -> IO ()
+profileDeletion keys = do 
+  let lAsList = zip keys [0..]
+      lAsTrie = fromList   lAsList
+      lAsMap  = M.fromList lAsList
+
+  enforceNormalForm (lAsList, lAsTrie, lAsMap)
+  profile "Trie deletion    " (enforceNormalForm (foldr delete   lAsTrie keys))
+  profile "Map  deletion    " (enforceNormalForm (foldr M.delete lAsMap  keys))
+
+-- Runs the profiling tasks
+main :: Prelude.IO ()
+main = do 
+  putStrLn "Benchmarking with small keys..."
+  profileLookup True smallKeys
+
+  putStrLn "\nBenchmarking with large keys..."
+  profileLookup False largeKeys 
+
+  putStrLn "\nBenchmarking deletion..."
+  profileDeletion smallKeys 
+
+{- Results:
+>   Benchmarking with small keys...
+>   Trie construction took 158ms
+>   Map  construction took 1235ms
+>   List lookup       took 12858ms
+>   Trie lookup       took 87ms
+>   Map  lookup       took 593ms
+> 
+>   Benchmarking with large keys...
+>   Trie construction took 1426ms
+>   Map  construction took 6816ms
+>   Trie lookup       took 712ms
+>   Map  lookup       took 4925ms
+>
+>   Benchmarking deletion...
+>   Trie deletion     took 331ms
+>   Map  deletion     took 842ms
+-}
+
+-------------------------------------------------------------------------------
+--- Benchmarking data
 type Keys = [String]
 
 alphabet :: [Char]
@@ -50,50 +115,6 @@ lM = (fromJust .) . flip M.lookup
 
 sumAllM :: Keys ->  M.Map String Int -> Int
 sumAllM keys = sum . flip map keys . lM
-
--------------------------------------------------------------------------------
---- Profiling
-
---- Benchmarks construction time and random access time 
---- of lists, tries and maps.
-runProfileTask :: Bool -> Keys -> IO ()
-runProfileTask ll keys = do 
-  let lAsList = zip keys [0..]
-      lAsTrie = fromList lAsList
-      lAsMap  = M.fromList lAsList
-
-  enforceNormalForm lAsList
-  profile "Trie construction" (enforceNormalForm lAsTrie)
-  profile "Map  construction" (enforceNormalForm lAsMap)
-
-  when ll $ 
-    profile "List lookup      " (enforceNormalForm (sumAllL keys lAsList))
-  profile   "Trie lookup      " (enforceNormalForm (sumAllT keys lAsTrie))
-  profile   "Map  lookup      " (enforceNormalForm (sumAllM keys lAsMap))
-
--- Runs the profiling tasks
-main :: Prelude.IO ()
-main = do 
-  putStrLn "Benchmarking with small keys..."
-  runProfileTask True smallKeys
-
-  putStrLn "\nBenchmarking with large keys..."
-  runProfileTask False largeKeys 
-
-{- Results:
->   Benchmarking with small keys...
->   Trie construction took 158ms
->   Map  construction took 1235ms
->   List lookup       took 12858ms
->   Trie lookup       took 87ms
->   Map  lookup       took 593ms
-> 
->   Benchmarking with large keys...
->   Trie construction took 1426ms
->   Map  construction took 6816ms
->   Trie lookup       took 712ms
->   Map  lookup       took 4925ms
--}
 
 -------------------------------------------------------------------------------
 --- Auxiliary functions
