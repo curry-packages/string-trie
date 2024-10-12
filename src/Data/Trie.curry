@@ -12,7 +12,7 @@ module Data.Trie
     
   --- * Basic functions 
     empty, null, singleton, size,
-    containsKey, remove, 
+    containsKey, delete, 
 
   --- * Traversing functions
     insert, lookup, 
@@ -59,13 +59,13 @@ insert (c:cs) v (Trie s v' ts) = case Prelude.lookup c ts of
 
 --- Removes a key from the trie. 
 --- If the key is not in the trie, the trie is returned unchanged.
-remove :: String -> Trie a -> Trie a
-remove key (Trie s v ts) = sanitize $ case key of
+delete :: String -> Trie a -> Trie a
+delete key (Trie s v ts) = sanitize $ case key of
   []     -> Trie (s-1) Nothing ts
   (c:cs) -> case Prelude.lookup c ts of
     Nothing -> Trie s v ts
     Just t  -> Trie (s-1) v (if null t then filter (\(c', _) -> c' /= c) ts
-                                       else (c, remove cs t) : (filter (\(c', _) -> c' /= c) ts))
+                                       else (c, delete cs t) : (filter (\(c', _) -> c' /= c) ts))
  where
   sanitize (Trie s' v' ts') = case (s', v', ts') of
     (0, _, _) -> empty

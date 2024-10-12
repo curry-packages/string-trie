@@ -38,9 +38,9 @@ testExtranousKeys input = forAll extra $ \k -> trie `containsKey` k -=- False
 
 --- Property: removing one key from a non-empty trie results in a trie with one less element,
 ---           namely, the one associated with the removed key.
-testRemoveOne :: [(String, Int)] -> Prop
-testRemoveOne input = not (P.null input) 
-                   ==> let nt = remove k trie 
+testDeleteOne :: [(String, Int)] -> Prop
+testDeleteOne input = not (P.null input) 
+                   ==> let nt = delete k trie 
                        in size nt == (size trie - 1) && isNothing (lookup k nt) -=- True
  where
   keys = map fst input
@@ -48,15 +48,15 @@ testRemoveOne input = not (P.null input)
   k    = head keys
 
 --- Property: removing all keys from a trie results in an empty trie.
-testRemove :: [(String, Int)] -> Prop
-testRemove input = (foldr remove trie keys) -=- empty
+testDelete :: [(String, Int)] -> Prop
+testDelete input = (foldr delete trie keys) -=- empty
  where
   keys = nub $ map fst input
   trie = fromList input
 
 --- Property: removing a non-existing key from a trie does not change the trie.
-testRemoveNonExisting :: [(String, Int)] -> Prop
-testRemoveNonExisting input = forAll extra $ \k -> remove k trie -=- trie
+testDeleteNonExisting :: [(String, Int)] -> Prop
+testDeleteNonExisting input = forAll extra $ \k -> delete k trie -=- trie
  where
   keys  = nub $ map fst input
   trie  = fromList input
