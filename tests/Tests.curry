@@ -23,7 +23,7 @@ testSize input = uniqueKeys input
              ==> size (fromList input) -=- length input
 
 --- Property: the size of a trie is equal to the number of elements in it,
----           where the keys of the input list are not unique.
+---           where the keys of the input list are not necessarily unique.
 testSize2 :: [(String, Int)] -> Prop
 testSize2 input = size (fromList input') -=- length (nub $ map fst input')
  where 
@@ -78,7 +78,7 @@ testConversion input = uniqueKeys content
  where
   content = input ++ [("a", 42), ("b", 43), ("ab", 44)]
 
---- Tests functor intsance of Data.Trie.
+--- Tests functor instance of Data.Trie.
 testFmap :: [(String, Int)] -> Prop
 testFmap input = uniqueKeys input
             ==> (sort . toList . fmap (+1) . fromList) input -=- (sort . map (\(k, v) -> (k, v+1))) input
