@@ -66,7 +66,7 @@ main = do
 >   Map  lookup       took 4925ms
 >
 >   Benchmarking deletion...
->   Trie deletion     took 331ms
+>   Trie deletion     took 494ms
 >   Map  deletion     took 842ms
 -}
 

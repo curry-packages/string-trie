@@ -23,60 +23,102 @@ module Data.Trie
 import Data.List
 import Data.Maybe
 
+import Prelude                hiding  ( lookup )
+import qualified Prelude as P         ( lookup )
+
 --- The size of a trie
 type Size = Int
 
 --- Trie data structure
-data Trie a = Trie Size (Maybe a) [(Char, Trie a)]
+data Trie a = Trie Size (InternalTrie a)
+  deriving (Show, Eq)
+
+--- Internal representation of a trie.
+data InternalTrie a = InternalTrie (Maybe a) [(Char, InternalTrie a)]
   deriving (Show, Eq)
 
 --- An empty trie.
 empty :: Trie a
-empty = Trie 0 Nothing []
+empty = Trie 0 empty'
+
+--- An empty internal trie.
+empty' :: InternalTrie a
+empty' = InternalTrie Nothing []
 
 --- Returns true iff the trie is empty.
 null :: Trie a -> Bool
-null x = case x of 
-  Trie _ Nothing [] -> True
-  _                 -> False
+null (Trie _ t) = null' t
+
+--- Returns true iff the internal trie is empty.
+null' :: InternalTrie a -> Bool
+null' t = case t of 
+  InternalTrie Nothing [] -> True
+  _                       -> False
 
 --- Returns the size of the trie.
 size :: Trie a -> Int
-size (Trie s _ _) = s
+size (Trie s _) = s
 
 --- A singleton trie.
 singleton :: String -> a -> Trie a
-singleton str v = insert str v empty
+singleton = (Trie 1 .) . singleton' 
+
+--- A singleton internal trie.
+singleton' :: String -> a -> InternalTrie a
+singleton' str v = foldr (\c t -> InternalTrie Nothing [(c, t)]) (InternalTrie (Just v) []) str
 
 --- Inserts a value into the trie.
 insert :: String -> a -> Trie a -> Trie a
-insert []     v (Trie s old ts) = case old of
-  Nothing -> Trie (s+1) (Just v) ts
-  Just _  -> Trie s     (Just v) ts
-insert (c:cs) v (Trie s v' ts) = case Prelude.lookup c ts of
-  Nothing -> Trie (s+1) v' ((c, insert cs v empty) : ts)
-  Just t  -> Trie (s+1) v' ((c, insert cs v t) : (filter (\(c', _) -> c' /= c) ts))
+insert key val (Trie s it) = let (incr, t) = insert' key val it
+                             in Trie (if incr then s+1 else s) t 
+ where 
+  -- Inserts a value into the internal trie and 
+  -- returns whether the size has increased.
+  insert' :: String -> a -> InternalTrie a -> (Bool, InternalTrie a)
+  insert' []     v (InternalTrie old ts) = case old of
+    Nothing -> (True,  InternalTrie (Just v) ts)
+    Just _  -> (False, InternalTrie (Just v) ts)
+  insert' (c:cs) v (InternalTrie v' ts) = case P.lookup c ts of
+    Nothing -> let t' = singleton' cs v 
+               in (True, InternalTrie v' ((c, t') : ts))
+    Just t  -> let (incr, t') = insert' cs v t
+               in (incr, InternalTrie v' ((c, t') : (filter (\(c', _) -> c' /= c) ts)))
 
 --- Removes a key from the trie. 
 --- If the key is not in the trie, the trie is returned unchanged.
 delete :: String -> Trie a -> Trie a
-delete key (Trie s v ts) = sanitize $ case key of
-  []     -> Trie (s-1) Nothing ts
-  (c:cs) -> case Prelude.lookup c ts of
-    Nothing -> Trie s v ts
-    Just t  -> Trie (s-1) v (if null t then filter (\(c', _) -> c' /= c) ts
-                                       else (c, delete cs t) : (filter (\(c', _) -> c' /= c) ts))
+delete key (Trie s it) = case (delete' key it) of 
+  Nothing -> Trie s     it
+  Just t  -> Trie (s-1) t 
  where
-  sanitize (Trie s' v' ts') = case (s', v', ts') of
-    (0, _, _) -> empty
-    _         -> Trie s' v' ts'
+  -- Tries to delete a key from the internal trie. If the key is not in the trie,
+  -- Nothing is returned. This feedback is used to determine whether the size of the trie
+  -- has changed.
+  delete' :: String -> InternalTrie a -> Maybe (InternalTrie a)
+  delete' k (InternalTrie v ts) = do
+    r <- case k of
+      []     -> case v of 
+        Nothing -> Nothing
+        Just _  -> Just $ InternalTrie Nothing ts
+      (c:cs) -> case P.lookup c ts of
+        Nothing -> Nothing
+        Just t  -> do 
+          t' <- delete' cs t
+          return $ InternalTrie v (if null' t then filter (\(c', _) -> c' /= c) ts
+                                                     else (c, t') : (filter (\(c', _) -> c' /= c) ts))
+    return $ sanitize r
+
+  sanitize :: InternalTrie a -> InternalTrie a
+  sanitize (InternalTrie v ts) = InternalTrie v (filter (not . null' . snd) ts)
 
 --- Looks up a value in the trie.
 lookup :: String -> Trie a -> Maybe a
-lookup []     (Trie _ v _)  = v
-lookup (c:cs) (Trie _ _ ts) = case Prelude.lookup c ts of
-  Nothing -> Nothing
-  Just t  -> lookup cs t
+lookup key (Trie _ it) = lookup' key it
+ where 
+  lookup' []     (InternalTrie v _)  = v
+  lookup' (c:cs) (InternalTrie _ ts) = case P.lookup c ts of
+    Nothing -> Nothing
+    Just t  -> lookup' cs t
 
 --- Checks whether a key is in the trie.
 containsKey :: Trie a -> String -> Bool
@@ -91,13 +133,17 @@ fromList = foldr (uncurry insert) empty
 --- Note that no guarantees are made about the order of the elements
 --- in the list.
 toList :: Trie a -> [(String, a)]
-toList (Trie _ v ts) = case v of
-  Nothing -> concatMap (\(c, t) -> map (\(s, w) -> (c:s, w)) (toList t)) ts
-  Just z  -> ("", z) :
-             concatMap (\(c, t) -> map (\(s, w) -> (c:s, w)) (toList t)) ts
+toList (Trie _ ts) = toList' ts
+ where 
+  toList' (InternalTrie v ts) = case v of
+    Nothing -> concatMap (\(c, t) -> map (\(s, w) -> (c:s, w)) (toList' t)) ts
+    Just z  -> ("", z) :
+              concatMap (\(c, t) -> map (\(s, w) -> (c:s, w)) (toList' t)) ts
 
 instance Functor Trie where
-  fmap f (Trie s v ts) = Trie s (fmap f v) (map (second (fmap f)) ts) 
+  fmap f (Trie s t) = Trie s (fmap' t)
+   where
+    fmap' (InternalTrie v ts) = InternalTrie (fmap f v) (map (second fmap') ts)
 
 -------------------------------------------------------------------------------
 --- Auxiliary functions

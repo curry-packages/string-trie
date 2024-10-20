@@ -16,10 +16,18 @@ testEmptySize = null empty -=- True
 testSingletonSize :: Prop
 testSingletonSize = size (singleton "a" 42) -=- 1
 
---- Property: the size of a trie is equal to the number of elements in it.
+--- Property: the size of a trie is equal to the number of elements in it,
+---           where the keys are unique.
 testSize :: [(String, Int)] -> Prop
 testSize input = uniqueKeys input 
              ==> size (fromList input) -=- length input
+
+--- Property: the size of a trie is equal to the number of elements in it,
+---           where the keys of the input list are not unique.
+testSize2 :: [(String, Int)] -> Prop
+testSize2 input = size (fromList input') -=- length (nub $ map fst input')
+ where 
+  input' = input ++ input
 
 --- Property: all elements in a trie can be looked up.
 testKeys :: [(String, Int)] -> Prop
