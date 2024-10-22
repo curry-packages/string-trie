@@ -53,21 +53,21 @@ main = do
 
 {- Results:
 >   Benchmarking with small keys...
->   Trie construction took 158ms
->   Map  construction took 1235ms
->   List lookup       took 12858ms
->   Trie lookup       took 87ms
->   Map  lookup       took 593ms
-> 
+>   Trie construction took 169ms
+>   Map  construction took 1273ms
+>   List lookup       took 13279ms
+>   Trie lookup       took 89ms
+>   Map  lookup       took 618ms
+>   
 >   Benchmarking with large keys...
->   Trie construction took 1426ms
->   Map  construction took 6816ms
->   Trie lookup       took 712ms
->   Map  lookup       took 4925ms
->
+>   Trie construction took 1526ms
+>   Map  construction took 6946ms
+>   Trie lookup       took 750ms
+>   Map  lookup       took 5039ms
+>   
 >   Benchmarking deletion...
->   Trie deletion     took 494ms
->   Map  deletion     took 842ms
+>   Trie deletion     took 486ms
+>   Map  deletion     took 865ms
 -}
 
 -------------------------------------------------------------------------------
