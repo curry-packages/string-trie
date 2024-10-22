@@ -5,7 +5,7 @@
 --- @version October 2024
 ------------------------------------------------------------------------------
 
-module Data.Internal.Trie where 
+module Data.Trie.Internal where 
 
 import Prelude                hiding  ( lookup )
 import qualified Prelude as P         ( lookup )

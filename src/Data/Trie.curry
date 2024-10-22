@@ -20,7 +20,7 @@ module Data.Trie
   --- * List conversion functions
     fromList, toList) where
 
-import Data.Internal.Trie
+import Data.Trie.Internal
 
 import Data.List
 import Data.Maybe
