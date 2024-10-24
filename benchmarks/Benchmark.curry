@@ -4,7 +4,7 @@ import           Data.Trie
 import qualified Data.Map as M
 import           Data.Maybe          ( fromJust )
 import           Data.List           ( sum, maximum )
-import           Debug.Profile       ( getTimings )
+import           Debug.Profile       ( getTimingsNF )
 import           Control.Applicative ( when ) 
 
 -------------------------------------------------------------------------------
@@ -19,13 +19,13 @@ profileLookup ll keys = do
       lAsMap  = M.fromList lAsList
 
   enforceNormalForm lAsList
-  profile "Trie construction" (enforceNormalForm lAsTrie)
-  profile "Map  construction" (enforceNormalForm lAsMap)
+  profile "Trie construction" lAsTrie
+  profile "Map  construction" lAsMap
 
   when ll $ 
-    profile "List lookup      " (enforceNormalForm (sumAllL keys lAsList))
-  profile   "Trie lookup      " (enforceNormalForm (sumAllT keys lAsTrie))
-  profile   "Map  lookup      " (enforceNormalForm (sumAllM keys lAsMap))
+    profile "List lookup      " (sumAllL keys lAsList)
+  profile   "Trie lookup      " (sumAllT keys lAsTrie)
+  profile   "Map  lookup      " (sumAllM keys lAsMap)
 
 --- Benchmarks random-access deletion time of all elements for tries and maps 
 --- (naive deletion of the complete container).
@@ -36,8 +36,8 @@ profileDeletion keys = do
       lAsMap  = M.fromList lAsList
 
   enforceNormalForm (lAsList, lAsTrie, lAsMap)
-  profile "Trie deletion    " (enforceNormalForm (foldr delete   lAsTrie keys))
-  profile "Map  deletion    " (enforceNormalForm (foldr M.delete lAsMap  keys))
+  profile "Trie deletion    " (foldr delete   lAsTrie keys)
+  profile "Map  deletion    " (foldr M.delete lAsMap  keys)
 
 -- Runs the profiling tasks
 main :: Prelude.IO ()
@@ -122,7 +122,7 @@ sumAllM keys = sum . flip map keys . lM
 enforceNormalForm :: a -> IO ()
 enforceNormalForm x = normalForm x `seq` return ()
 
-profile :: String -> IO () -> IO ()
-profile nm act = do 
-  (_, rt, _, _) <- getTimings act
+profile :: String -> a -> IO ()
+profile nm exp = do 
+  (rt, _, _) <- getTimingsNF exp
   putStrLn (nm ++ " took " ++ show rt ++ "ms")  
