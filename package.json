@@ -15,5 +15,9 @@
   "testsuite": {
     "src-dir": "tests",
     "modules": [ "Tests" ]
+  },
+  "source": {
+    "git": "https://github.com/curry-packages/string-trie.git",
+    "tag": "$version"
   }
 }
