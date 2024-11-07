@@ -2,13 +2,10 @@
 --- Internal representation of a trie.
 ---
 --- @author Lasse Züngel
---- @version October 2024
+--- @version November 2024
 ------------------------------------------------------------------------------
 
 module Data.Trie.Internal where 
-
-import Prelude                hiding  ( lookup )
-import qualified Prelude as P         ( lookup )
 
 --- Internal representation of a trie.
 data InternalTrie a = InternalTrie (Maybe a) [(Char, InternalTrie a)]
@@ -26,7 +23,8 @@ null' t = case t of
 
 --- A singleton internal trie.
 singleton' :: String -> a -> InternalTrie a
-singleton' str v = foldr (\c t -> InternalTrie Nothing [(c, t)]) (InternalTrie (Just v) []) str
+singleton' str v =
+  foldr (\c t -> InternalTrie Nothing [(c, t)]) (InternalTrie (Just v) []) str
 
 -- Inserts a value into the internal trie and 
 -- returns whether the size has increased.
@@ -34,7 +32,7 @@ insert' :: String -> a -> InternalTrie a -> (Bool, InternalTrie a)
 insert' []     v (InternalTrie old ts) = case old of
   Nothing -> (True,  InternalTrie (Just v) ts)
   Just _  -> (False, InternalTrie (Just v) ts)
-insert' (c:cs) v (InternalTrie v' ts) = case P.lookup c ts of
+insert' (c:cs) v (InternalTrie v' ts) = case Prelude.lookup c ts of
   Nothing -> let t' = singleton' cs v 
              in (True, InternalTrie v' ((c, t') : ts))
   Just t  -> let (incr, t') = insert' cs v t
@@ -49,21 +47,23 @@ delete' k (InternalTrie v ts) = do
     []     -> case v of 
       Nothing -> Nothing
       Just _  -> Just $ InternalTrie Nothing ts
-    (c:cs) -> case P.lookup c ts of
+    (c:cs) -> case Prelude.lookup c ts of
       Nothing -> Nothing
       Just t  -> do 
         t' <- delete' cs t
-        return $ InternalTrie v (if null' t then filter (\(c', _) -> c' /= c) ts
-                                                   else (c, t') : (filter (\(c', _) -> c' /= c) ts))
+        return $ InternalTrie v (if null' t
+                                   then filter (\(c', _) -> c' /= c) ts
+                                   else (c, t') : filter(\ (c', _) -> c' /= c) ts)
   return $ sanitize r
  where
   sanitize :: InternalTrie a -> InternalTrie a
-  sanitize (InternalTrie v' ts') = InternalTrie v' (filter (not . null' . snd) ts')
+  sanitize (InternalTrie v' ts') =
+    InternalTrie v' (filter (not . null' . snd) ts')
 
 --- Looks up a value in the internal trie.
 lookup' :: String -> InternalTrie a -> Maybe a
 lookup' []     (InternalTrie v _)  = v
-lookup' (c:cs) (InternalTrie _ ts) = case P.lookup c ts of
+lookup' (c:cs) (InternalTrie _ ts) = case Prelude.lookup c ts of
   Nothing -> Nothing
   Just t  -> lookup' cs t
 
