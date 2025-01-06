@@ -43,18 +43,15 @@ insert' (c:cs) v (InternalTrie v' ts) = case Prelude.lookup c ts of
 -- has changed.
 delete' :: String -> InternalTrie a -> Maybe (InternalTrie a)
 delete' k (InternalTrie v ts) = do
-  r <- case k of
-    []     -> case v of 
-      Nothing -> Nothing
-      Just _  -> Just $ InternalTrie Nothing ts
-    (c:cs) -> case Prelude.lookup c ts of
-      Nothing -> Nothing
-      Just t  -> do 
-        t' <- delete' cs t
-        return $ InternalTrie v (if null' t
-                                   then filter (\(c', _) -> c' /= c) ts
-                                   else (c, t') : filter(\ (c', _) -> c' /= c) ts)
-  return $ sanitize r
+  res <- case k of
+    []     -> v *> Just (InternalTrie Nothing ts)
+    (c:cs) -> do 
+      t  <- Prelude.lookup c ts
+      t' <- delete' cs t
+      let e  = (c, t') 
+          es = filter ((/= c) . fst) ts
+      return $ InternalTrie v (if null' t then es else e : es)
+  return $ sanitize res
  where
   sanitize :: InternalTrie a -> InternalTrie a
   sanitize (InternalTrie v' ts') =
@@ -63,16 +60,14 @@ delete' k (InternalTrie v ts) = do
 --- Looks up a value in the internal trie.
 lookup' :: String -> InternalTrie a -> Maybe a
 lookup' []     (InternalTrie v _)  = v
-lookup' (c:cs) (InternalTrie _ ts) = case Prelude.lookup c ts of
-  Nothing -> Nothing
-  Just t  -> lookup' cs t
+lookup' (c:cs) (InternalTrie _ ts) = Prelude.lookup c ts >>= lookup' cs
 
 --- Converts an internal trie into a list of key-value pairs.
 toList' :: InternalTrie a -> [(String, a)]
 toList' (InternalTrie v ts) = case v of
   Nothing -> concatMap (\(c, t) -> map (\(s, w) -> (c:s, w)) (toList' t)) ts
   Just z  -> ("", z) :
-            concatMap (\(c, t) -> map (\(s, w) -> (c:s, w)) (toList' t)) ts
+              concatMap (\(c, t) -> map (\(s, w) -> (c:s, w)) (toList' t)) ts
 
 instance Functor InternalTrie where
   fmap f (InternalTrie v ts) = InternalTrie (fmap f v) (map (second (fmap f)) ts)

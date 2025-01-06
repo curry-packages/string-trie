@@ -1,16 +1,14 @@
 module Tests where
 
-import Data.Trie
+import Data.Trie as T
 import Test.Prop
-import Data.Maybe ( isNothing )
-import Data.List  ( sort, nub, intersect )
-
-import           Prelude hiding ( lookup, null, empty )
-import qualified Prelude as P   ( null )
+import Data.Maybe       ( isNothing )
+import Data.List        ( sort, nub, intersect )
+import Data.Tuple.Extra ( second )
 
 --- Property: an empty trie has size 0.
 testEmptySize :: Prop
-testEmptySize = null empty -=- True
+testEmptySize = T.null T.empty -=- True
 
 --- Property: a singleton trie has size 1.
 testSingletonSize :: Prop
@@ -47,9 +45,9 @@ testExtranousKeys input = forAll extra $ \k -> trie `containsKey` k -=- False
 --- Property: removing one key from a non-empty trie results in a trie with one less element,
 ---           namely, the one associated with the removed key.
 testDeleteOne :: [(String, Int)] -> Prop
-testDeleteOne input = not (P.null input) 
+testDeleteOne input = not (Prelude.null input) 
                    ==> let nt = delete k trie 
-                       in size nt == (size trie - 1) && isNothing (lookup k nt) -=- True
+                       in size nt == (size trie - 1) && isNothing (T.lookup k nt) -=- True
  where
   keys = map fst input
   trie = fromList input
@@ -57,7 +55,7 @@ testDeleteOne input = not (P.null input)
 
 --- Property: removing all keys from a trie results in an empty trie.
 testDelete :: [(String, Int)] -> Prop
-testDelete input = (foldr delete trie keys) -=- empty
+testDelete input = (foldr delete trie keys) -=- T.empty
  where
   keys = nub $ map fst input
   trie = fromList input
@@ -81,7 +79,7 @@ testConversion input = uniqueKeys content
 --- Tests functor instance of Data.Trie.
 testFmap :: [(String, Int)] -> Prop
 testFmap input = uniqueKeys input
-            ==> (sort . toList . fmap (+1) . fromList) input -=- (sort . map (\(k, v) -> (k, v+1))) input
+            ==> (sort . toList . fmap (+1) . fromList) input -=- (sort . map (second (+ 1))) input
 
 -------------------------------------------------------------------------------
 --- Auxiliary functions
@@ -92,7 +90,7 @@ uniqueKeys xs = length xs == (length . nub . map fst) xs
 
 --- Checks whether two lists are disjoint.
 disjoint :: Eq a => [a] -> [a] -> Bool
-disjoint = (P.null .) . intersect
+disjoint = (Prelude.null .) . intersect
 
 --- Generates an infinite list of fresh keys.
 freshKeys :: [String] -> [String]
