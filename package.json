@@ -1,6 +1,6 @@
 {
   "name": "string-trie",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "author": "Lasse Zuengel <stu226842@mail.uni-kiel.de>",
   "synopsis": "Implementation of an efficient map from strings to values.",
   "category": [ "Data" ],
