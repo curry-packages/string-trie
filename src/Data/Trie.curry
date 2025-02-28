@@ -46,11 +46,11 @@ size (Trie s _) = s
 
 --- A singleton trie.
 singleton :: String -> a -> Trie a
-singleton = (Trie 1 .) . singleton' 
+singleton = Trie 1 .: singleton' 
 
 --- Inserts a value into the trie.
 insert :: String -> a -> Trie a -> Trie a
-insert key val t = update key (const val) t
+insert key val = update key (const val)
 
 --- Updates or inserts a value in the trie. 
 update :: String -> (Maybe a -> a) -> Trie a -> Trie a
@@ -70,7 +70,7 @@ lookup key (Trie _ it) = lookup' key it
 
 --- Checks whether a key is in the trie.
 containsKey :: Trie a -> String -> Bool
-containsKey = (isJust .) . flip lookup
+containsKey = isJust .: flip lookup
 
 --- Converts a list of key-value pairs into a trie.
 fromList :: [(String, a)] -> Trie a
@@ -85,3 +85,12 @@ toList (Trie _ ts) = toList' ts
 
 instance Functor Trie where
   fmap f (Trie s t) = Trie s (fmap f t)
+
+--------------------------------------------------------------------------------
+--- Helper functions
+
+infixr 9 .:
+
+--- Composition operator similar to (.), but the second function has two arguments.
+(.:) :: (c -> d) -> (a -> b -> c) -> a -> b -> d
+(.:) = (.) . (.)

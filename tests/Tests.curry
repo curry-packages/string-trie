@@ -17,14 +17,14 @@ testSingletonSize = size (singleton "a" 42) -=- 1
 --- Property: the size of a trie is equal to the number of elements in it,
 ---           where the keys are unique.
 testSize :: [(String, Int)] -> Prop
-testSize input = uniqueKeys input 
+testSize input = uniqueKeys input
              ==> size (fromList input) -=- length input
 
 --- Property: the size of a trie is equal to the number of elements in it,
 ---           where the keys of the input list are not necessarily unique.
 testSize2 :: [(String, Int)] -> Prop
 testSize2 input = size (fromList input') -=- length (nub $ map fst input')
- where 
+ where
   input' = input ++ input
 
 --- Property: all elements in a trie can be looked up.
@@ -73,7 +73,7 @@ testDeleteNonExisting input = forAll extra $ \k -> delete k trie -=- trie
 --- Property: `toList . fromList` behaves like the identity function 
 --- (ignoring potential loss of order). That is, all information is preserved.
 testConversion :: [(String, Int)] -> Prop
-testConversion input = uniqueKeys content 
+testConversion input = uniqueKeys content
                    ==> (sort . toList . fromList) content -=- sort content
  where
   content = input ++ [("a", 42), ("b", 43), ("ab", 44)]
@@ -81,17 +81,17 @@ testConversion input = uniqueKeys content
 --- Tests functor instance of Data.Trie.
 testFmap :: [(String, Int)] -> Prop
 testFmap input = uniqueKeys input
-            ==> (sort . toList . fmap (+1) . fromList) input 
+            ==> (sort . toList . fmap (+1) . fromList) input
                  -=- (sort . map (second (+ 1))) input
 
---- Test: Updating a key in a trie with a new value 
+--- Test: Updating a key in a trie with a new value
 --- results in the new value being associated with the key.
 testUpdate :: [(String, Int)] -> Prop
-testUpdate input = 
+testUpdate input =
   fmap (+1) trie -=- foldr (\k t -> update k (\(Just v) -> v + 1) t) trie keys
  where
   trie = T.fromList input
-  keys = nub $ map fst input 
+  keys = nub $ map fst input
 
 -------------------------------------------------------------------------------
 --- Auxiliary functions

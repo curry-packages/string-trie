@@ -5,7 +5,7 @@
 --- @version November 2024
 ------------------------------------------------------------------------------
 
-module Data.Trie.Internal where 
+module Data.Trie.Internal where
 
 import Data.Maybe ( isNothing )
 
@@ -19,7 +19,7 @@ empty' = InternalTrie Nothing []
 
 --- Returns true iff the internal trie is empty.
 null' :: InternalTrie a -> Bool
-null' t = case t of 
+null' t = case t of
   InternalTrie Nothing [] -> True
   _                       -> False
 
@@ -31,7 +31,7 @@ singleton' str v =
 -- Updates or inserts a value in the internal trie and
 -- returns whether the size has increased.
 update' :: String -> (Maybe a -> a) -> InternalTrie a -> (Bool, InternalTrie a)
-update' []     f (InternalTrie old ts) = (isNothing old,  InternalTrie (Just $ f old) ts)
+update' []     f (InternalTrie old ts) = (isNothing old, InternalTrie (Just $ f old) ts)
 update' (c:cs) f (InternalTrie v' ts) = case Prelude.lookup c ts of
   Nothing -> let t' = singleton' cs (f Nothing)
              in (True, InternalTrie v' ((c, t') : ts))
@@ -45,14 +45,15 @@ delete' :: String -> InternalTrie a -> Maybe (InternalTrie a)
 delete' k (InternalTrie v ts) = do
   res <- case k of
     []     -> v *> Just (InternalTrie Nothing ts)
-    (c:cs) -> do 
+    (c:cs) -> do
       t  <- Prelude.lookup c ts
       t' <- delete' cs t
-      let e  = (c, t') 
+      let e  = (c, t')
           es = filter ((/= c) . fst) ts
       return $ InternalTrie v (if null' t then es else e : es)
   return $ sanitize res
  where
+  -- Removes empty subtrees from the internal trie.
   sanitize :: InternalTrie a -> InternalTrie a
   sanitize (InternalTrie v' ts') =
     InternalTrie v' (filter (not . null' . snd) ts')
@@ -64,10 +65,9 @@ lookup' (c:cs) (InternalTrie _ ts) = Prelude.lookup c ts >>= lookup' cs
 
 --- Converts an internal trie into a list of key-value pairs.
 toList' :: InternalTrie a -> [(String, a)]
-toList' (InternalTrie v ts) = case v of
-  Nothing -> concatMap (\(c, t) -> map (\(s, w) -> (c:s, w)) (toList' t)) ts
-  Just z  -> ("", z) :
-              concatMap (\(c, t) -> map (\(s, w) -> (c:s, w)) (toList' t)) ts
+toList' (InternalTrie v ts) = maybe go (\z -> ("", z) : go) v
+ where
+  go = concatMap (\(c, t) -> map (\(s, w) -> (c:s, w)) (toList' t)) ts
 
 instance Functor InternalTrie where
   fmap f (InternalTrie v ts) = InternalTrie (fmap f v) (map (second (fmap f)) ts)
@@ -75,5 +75,6 @@ instance Functor InternalTrie where
 -------------------------------------------------------------------------------
 --- Auxiliary functions
 
+-- Applies a function to the second element of a tuple.
 second :: (a -> b) -> (c, a) -> (c, b)
 second f (x, y) = (x, f y)
