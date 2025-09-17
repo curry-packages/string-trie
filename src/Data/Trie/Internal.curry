@@ -70,7 +70,7 @@ instance Functor InternalTrie where
   fmap f (InternalTrie v ts) = InternalTrie (fmap f v) (map (second (fmap f)) ts)
 
 -------------------------------------------------------------------------------
---- Auxiliary functions
+-- Auxiliary functions
 
 -- | Applies a function to the second element of a tuple.
 second :: (a -> b) -> (c, a) -> (c, b)

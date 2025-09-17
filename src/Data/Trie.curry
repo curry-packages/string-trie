@@ -84,7 +84,7 @@ instance Functor Trie where
   fmap f (Trie s t) = Trie s (fmap f t)
 
 --------------------------------------------------------------------------------
---- Helper functions
+-- Helper functions
 
 infixr 9 .:
 

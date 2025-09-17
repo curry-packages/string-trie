@@ -107,7 +107,7 @@ testInsertOverwrite input =
        in T.lookup k t' -=- Just (v + 1)
 
 -------------------------------------------------------------------------------
---- Auxiliary functions
+-- Auxiliary functions
 
 -- | Checks whether the keys in the input list are unique.
 uniqueKeys :: [(String, a)] -> Bool
